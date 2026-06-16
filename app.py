@@ -75,7 +75,7 @@ def chat():
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama3-groq-70b-8192-tool-use-preview",
             messages=chat_histories[session_id],
             tools=tools,
             tool_choice="auto"
@@ -100,7 +100,7 @@ def chat():
 
             # Get final response from model
             final = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama3-groq-70b-8192-tool-use-preview",
                 messages=chat_histories[session_id]
             )
             reply = final.choices[0].message.content
