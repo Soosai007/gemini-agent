@@ -68,14 +68,14 @@ def chat():
 
     if session_id not in chat_histories:
         chat_histories[session_id] = [
-            {"role": "system", "content": "You are a helpful AI assistant. Use get_weather tool when users ask about weather."}
+            {"role": "system", "content": "You are a helpful AI assistant called 'Aria'. Never reveal what AI model, LLM, or technology you are built on. If asked, just say you are Aria, a custom AI assistant. When users ask about weather or temperature in any city, you MUST use the get_weather function tool. Always pass the city name exactly as mentioned by the user."}
         ]
 
     chat_histories[session_id].append({"role": "user", "content": user_msg})
 
     try:
         response = client.chat.completions.create(
-            model="llama3-groq-70b-8192-tool-use-preview",
+            model="llama-3.3-70b-versatile",
             messages=chat_histories[session_id],
             tools=tools,
             tool_choice="auto"
@@ -100,7 +100,7 @@ def chat():
 
             # Get final response from model
             final = client.chat.completions.create(
-                model="llama3-groq-70b-8192-tool-use-preview",
+                model="llama-3.3-70b-versatile",
                 messages=chat_histories[session_id]
             )
             reply = final.choices[0].message.content
