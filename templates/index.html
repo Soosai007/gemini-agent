@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini AI Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f11;
+      --surface:   #1a1a1f;
+      --border:    #2a2a32;
+      --accent:    #7c6af7;
+      --accent-glow: rgba(124,106,247,.18);
+      --user-bg:   #7c6af7;
+      --bot-bg:    #1f1f27;
+      --text:      #e8e6f0;
+      --muted:     #6b6880;
+      --radius:    14px;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shell {
+      width: min(680px, 100%);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #7c6af7, #a78bfa);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 18px;
+    }
+
+    header h1 { font-size: 16px; font-weight: 600; }
+    header p  { font-size: 12px; color: var(--muted); }
+
+    .status-dot {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .welcome {
+      text-align: center;
+      margin: auto;
+      padding: 32px 20px;
+    }
+    .welcome .icon { font-size: 48px; margin-bottom: 12px; }
+    .welcome h2   { font-size: 20px; margin-bottom: 8px; }
+    .welcome p    { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .chip {
+      padding: 8px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .bubble-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .bubble-row.user  { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .bubble-row.user  .avatar { background: var(--accent); }
+    .bubble-row.bot   .avatar { background: #2a2a3a; border: 1px solid var(--border); }
+
+    .bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+    .bubble-row.user .bubble {
+      background: var(--user-bg);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble-row.bot .bubble {
+      background: var(--bot-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .typing .bubble {
+      display: flex; gap: 4px; align-items: center;
+      padding: 12px 16px;
+    }
+    .typing .dot-t {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+      animation: bounce .9s infinite ease-in-out;
+    }
+    .typing .dot-t:nth-child(2) { animation-delay: .15s; }
+    .typing .dot-t:nth-child(3) { animation-delay: .30s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-6px); }
+    }
+
+    .input-bar {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 10px 14px;
+      resize: none;
+      outline: none;
+      max-height: 140px;
+      line-height: 1.5;
+      transition: border-color .2s;
+    }
+    textarea:focus    { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      display: grid; place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: opacity .2s, transform .15s;
+    }
+    .send-btn:hover   { opacity: .85; }
+    .send-btn:active  { transform: scale(.93); }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .reset-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 10px; color: var(--muted);
+      padding: 8px 12px; font-size: 12px;
+      cursor: pointer; transition: color .2s, border-color .2s;
+      flex-shrink: 0;
+    }
+    .reset-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo">✦</div>
+    <div>
+      <h1>Gemini AI Agent</h1>
+      <p>Powered by Google Gemini 1.5 Flash</p>
+    </div>
+    <div class="status-dot"><div class="dot"></div>Live</div>
+  </header>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="icon">🤖</div>
+      <h2>Hello! I'm your AI assistant</h2>
+      <p>I can answer questions, fetch live weather, and much more.<br>Try one of the suggestions below or type anything!</p>
+      <div class="chips">
+        <div class="chip" onclick="sendChip(this)">🌡️ Temperature in Chennai</div>
+        <div class="chip" onclick="sendChip(this)">🌧️ Weather in Mumbai</div>
+        <div class="chip" onclick="sendChip(this)">💡 What can you do?</div>
+        <div class="chip" onclick="sendChip(this)">🕐 Current time in Tokyo</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <button class="reset-btn" onclick="resetChat()">↺ Reset</button>
+    <textarea
+      id="input"
+      rows="1"
+      placeholder="Ask me anything…"
+      onkeydown="handleKey(event)"
+      oninput="autoResize(this)"
+    ></textarea>
+    <button class="send-btn" id="sendBtn" onclick="send()" title="Send">➤</button>
+  </div>
+  <p class="footer-note">Running locally · Gemini 1.5 Flash · Open-Meteo weather</p>
+
+</div>
+
+<script>
+  const SESSION_ID = "session_" + Math.random().toString(36).slice(2);
+  const messagesEl = document.getElementById("messages");
+  const inputEl    = document.getElementById("input");
+  const sendBtn    = document.getElementById("sendBtn");
+
+  function autoResize(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+  }
+
+  function handleKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  }
+
+  function sendChip(el) {
+    inputEl.value = el.textContent.replace(/^[^\s]+\s/, "").trim();
+    send();
+  }
+
+  function addBubble(role, text) {
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.remove();
+
+    const row  = document.createElement("div");
+    row.className = `bubble-row ${role}`;
+
+    const av   = document.createElement("div");
+    av.className = "avatar";
+    av.textContent = role === "user" ? "👤" : "✦";
+
+    const bub  = document.createElement("div");
+    bub.className = "bubble";
+    bub.textContent = text;
+
+    row.append(av, bub);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function showTyping() {
+    const row = document.createElement("div");
+    row.className = "bubble-row bot typing";
+    row.id = "typing";
+    row.innerHTML = `
+      <div class="avatar">✦</div>
+      <div class="bubble">
+        <div class="dot-t"></div>
+        <div class="dot-t"></div>
+        <div class="dot-t"></div>
+      </div>`;
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    document.getElementById("typing")?.remove();
+  }
+
+  async function send() {
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+
+    addBubble("user", msg);
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    sendBtn.disabled = true;
+    showTyping();
+
+    try {
+      const res  = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, session_id: SESSION_ID })
+      });
+      const data = await res.json();
+      removeTyping();
+      addBubble("bot", data.reply || data.error || "Something went wrong.");
+    } catch (err) {
+      removeTyping();
+      addBubble("bot", "⚠️ Could not reach the server. Is the backend running?");
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  async function resetChat() {
+    await fetch("/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: SESSION_ID })
+    });
+    messagesEl.innerHTML = `
+      <div class="welcome" id="welcome">
+        <div class="icon">🤖</div>
+        <h2>Chat reset!</h2>
+        <p>Start a fresh conversation below.</p>
+      </div>`;
+  }
+</script>
+</body>
+</html>
